@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profit Calculator</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    .navbar {
+      width: 100%;
+      background: linear-gradient(90deg, #7f53ff 0%, #4f8cff 100%);
+      color: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .navbar-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .navbar-calculator-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s;
+      margin-left: 12px;
+    }
+    .navbar-calculator-btn:hover {
+      color: #ffe066;
+    }
+    .main-content {
+      margin-top: 70px;
+      padding: 32px 16px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 1.1rem;
+      color: #23272f;
+    }
+    .calculator-overlay {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.18);
+      z-index: 2000;
+      display: none;
+      transition: background 0.2s;
+    }
+    .calculator-overlay.active {
+      display: block;
+    }
+    .sidebar-calculator {
+      position: fixed;
+      top: 56px;
+      right: -360px;
+      height: calc(100vh - 56px);
+      z-index: 2100;
+      transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: -8px 0 32px 0 rgba(0,0,0,0.22);
+    }
+    .sidebar-calculator.open {
+      right: 0;
+    }
+    @media (max-width: 480px) {
+      .sidebar-calculator {
+        width: 100vw !important;
+        min-width: 0;
+        right: -100vw;
+        top: 56px;
+        height: calc(100vh - 56px);
+      }
+      .sidebar-calculator.open {
+        right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <span class="navbar-title"><i class="fa-solid fa-chart-line"></i> Demo Website</span>
+    <button class="navbar-calculator-btn" id="openCalculatorBtn" title="Open Profit Calculator" aria-label="Open Profit Calculator">
+      <i class="fa-solid fa-calculator"></i>
+    </button>
+  </nav>
+  <div class="main-content">
+    <h1>Welcome to the Profit Calculator Demo</h1>
+    <p>This is a demo website. Click the calculator icon in the navbar to open the profit calculator sidebar. You can use all the features of the calculator, including day/night mode, PDF/CSV export, and undo/redo.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod, nisi eu consectetur consectetur, nisl nisi consectetur nisi, eu consectetur nisl nisi euismod nisi.</p>
+  </div>
+  <div class="calculator-overlay" id="calculatorOverlay"></div>
+  <div class="sidebar-calculator premium-sidebar" id="calculatorSidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title"><i class="fa-solid fa-coins"></i> Profit Calculator</span>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle dark or light mode">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="sidebar-close" title="Close" id="closeCalculatorBtn">&times;</button>
+      </div>
+    </div>
+    <form class="sidebar-form" id="profitForm" novalidate>
+      <div id="formErrors" class="form-errors" style="display:none;" role="alert"></div>
+      <div class="form-section">
+        <div class="section-header">Inputs</div>
+        <div class="input-row">
+          <div class="form-group">
+            <label for="retailPrice">Retail Price</label>
+            <input type="number" id="retailPrice" name="retailPrice" placeholder="Retail" required aria-label="Retail Price" />
+          </div>
+          <div class="form-group">
+            <label for="marginTarget">Margin Target</label>
+            <input type="number" id="marginTarget" name="marginTarget" placeholder="Target" required aria-label="Margin Target" />
+          </div>
+        </div>
+        <div class="input-row">
+          <div class="form-group">
+            <label for="pricePosition">Price Position %</label>
+            <input type="number" id="pricePosition" name="pricePosition" step="0.01" placeholder="e.g. 105" required aria-label="Price Position %" />
+          </div>
+          <div class="form-group">
+            <label for="financeCommission">Finance Rate %</label>
+            <input type="number" id="financeCommission" name="financeCommission" placeholder="e.g. 6" required aria-label="Finance Commission" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="cost">Additional Costs</label>
+          <input type="number" id="cost" name="cost" placeholder="e.g. 2000" required aria-label="Cost" />
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-header">Calculated Outputs</div>
+        <div class="output-row">
+          <div class="output-label">Finance Commissions</div>
+          <div class="output-value" id="financeCommissionOutput">£0.00</div>
+        </div>
+        <div class="output-row">
+          <div class="output-label">Max Purchase Price</div>
+          <div class="output-value" id="maxPurchasePrice">£0.00</div>
+        </div>
+        <div class="output-row total-margin-row">
+          <div>
+            <div class="output-label">Total Potential Margin</div>
+            <div class="output-subtext" id="marginPercent">0% margin</div>
+          </div>
+          <div class="output-value total-margin" id="totalMargin">£0.00</div>
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="save-btn" type="submit" id="saveBtn">
+          <span class="btn-content"><i class="fa-solid fa-file-pdf"></i> Save as PDF</span>
+          <span class="btn-spinner" style="display:none;"></span>
+          <span class="btn-checkmark" style="display:none;"><i class="fa-solid fa-check"></i></span>
+        </button>
+        <button class="csv-btn" type="button" id="csvBtn">
+          <i class="fa-solid fa-file-csv"></i> Export as CSV
+        </button>
+      </div>
+    </form>
+    <div id="toast" class="toast" style="display:none;" role="status" aria-live="polite"></div>
+  </div>
+  <script src="popup.js"></script>
+  <script>
+    // Sidebar open/close logic
+    const openBtn = document.getElementById('openCalculatorBtn');
+    const closeBtn = document.getElementById('closeCalculatorBtn');
+    const sidebar = document.getElementById('calculatorSidebar');
+    const overlay = document.getElementById('calculatorOverlay');
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('active');
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    }
+    openBtn.addEventListener('click', openSidebar);
+    closeBtn.addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', closeSidebar);
+    // Optional: close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeSidebar();
+    });
+  </script>
+</body>
+</html>
